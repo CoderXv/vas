@@ -1,0 +1,75 @@
+__author__ = 'user'
+
+
+class DataSet:
+    def __init__(self,index):
+        self.index = index
+        self.vessels = []
+
+        self.vessel_0 = {}
+        self.vessel_1 = {}
+        self.vessel_2 = {}
+        self.vessel_3 = {}
+
+        self.vessels.append(self.vessel_0)
+        self.vessels.append(self.vessel_1)
+        self.vessels.append(self.vessel_2)
+        self.vessels.append(self.vessel_3)
+        self.img_path = ''
+
+    def print_me(self):
+        print "--------------------------------------------------------------------------------------"
+        print self.vessel_0
+        print self.vessel_1
+        print self.vessel_2
+        print self.vessel_3
+        print self.img_path
+        print "--------------------------------------------------------------------------------------"
+
+    # set function
+    def set_point_a_path_by_vessel_index(self, index, a):
+        self.vessels[index]["pointA"] = a
+
+    def set_point_b_path_by_vessel_index(self, index, b):
+        self.vessels[index]["pointB"] = b
+
+    def set_point_e_path_by_vessel_index(self, index, e):
+        self.vessels[index]["pointE"] = e
+
+    def set_point_s_path_by_vessel_index(self, index, s):
+        self.vessels[index]["pointS"] = s
+
+    def set_point_ref_path_by_vessel_index(self, index, ref):
+        self.vessels[index]["reference"] = ref
+
+    def set_image_path(self, img_path):
+        self.img_path = img_path
+
+    # get function
+    def get_img_path(self):  # use
+        return self.img_path
+
+    def get_number_of_vessels(self):  # use
+        return len(self.vessels)
+
+    def get_number_of_point_file_in_data_set(self, index):
+        if index == 0:
+            return len(self.vessel_0)
+        if index == 1:
+            return len(self.vessel_1)
+        if index == 2:
+            return len(self.vessel_2)
+        if index == 3:
+            return len(self.vessel_3)
+
+    def get_path_of_the_point_in_data_set(self, vessel_index, point_key):
+        path = self.vessels[vessel_index][point_key]
+        return path
+
+
+
+
+
+
+
+
