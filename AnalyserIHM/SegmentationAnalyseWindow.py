@@ -255,18 +255,22 @@ class SegmentationAnalyseWindow(QFrame):
     def reconstruct0(self):
         if self.ref_flag is True and self.preVessel0Status == Qt.Checked:
                 print "ready to reconstruct vessel 0"
+                self.reconstruct(0)
 
     def reconstruct1(self):
         if self.ref_flag is True and self.preVessel1Status == Qt.Checked:
                 print "ready to reconstruct vessel 1"
+                self.reconstruct(1)
 
     def reconstruct2(self):
         if self.ref_flag is True and self.preVessel2Status == Qt.Checked:
                 print "ready to reconstruct vessel 2"
+                self.reconstruct(2)
 
     def reconstruct3(self):
         if self.ref_flag is True and self.preVessel3Status == Qt.Checked:
                 print "ready to reconstruct vessel 3"
+                self.reconstruct(3)
 
-    #def reconstruct_vessel(self,  )
-
+    def reconstruct(self, vessel_index):
+        self.parent.reconstruct(vessel_index)
