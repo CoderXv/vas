@@ -1,22 +1,20 @@
-__author__ = 'xuhaoshen'
 import vtk
 import sys
-# from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from vtk.qt4.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from PyQt4.QtCore import *
 from AnalyserContext.VesselFileReader import VesselFileReader
 import math
 import time
-
-
-
+import threading
 
 
 class VesselDisplayWindow(QFrame):
     """
         This class is used for reading the vessel coordinates and then display it in the widget by vtk kit.
     """
+    Signal_NoParameters = pyqtSignal()
+
     def __init__(self, parent=None):
         QFrame.__init__(self, parent)
         self.ref_data_seq = None  # store the four ref data ( vessel file reader)
@@ -33,11 +31,18 @@ class VesselDisplayWindow(QFrame):
         self.zVoxelNum = 0.40000000596
 
         self.ren = vtk.vtkRenderer()
-        self.ren.SetBackground(122.0/255, 140.0/255, 153.0/255)
+        self.ren.SetBackground(122.0 / 255, 140.0 / 255, 153.0 / 255)
         self.vtkWidget.GetRenderWindow().AddRenderer(self.ren)
         self.iren = self.vtkWidget.GetRenderWindow().GetInteractor()
+        self.vessel_index = -1
+        self.offset = 0
+        self.vessel_image = None
+        self.Signal_NoParameters.connect(self.update_renderer, Qt.QueuedConnection)
 
-        self.show()
+    @pyqtSlot()
+    def update_renderer(self):
+        print "update"
+        self.render_volume_data(self.vessel_image)
 
     def interactor_initialization(self):
         self.iren.Initialize()
@@ -74,7 +79,7 @@ class VesselDisplayWindow(QFrame):
         actor_seq = []
         for evaluated_path in path_dir:
             vessel_file_reader = VesselFileReader()
-            vessel_file_reader. parse_vessel_file(evaluated_path)
+            vessel_file_reader.parse_vessel_file(evaluated_path)
             vessel_file_reader.do_parse_vessel_file()
             actor = self.create_vessel_actor(vessel_file_reader)
             actor.GetProperty().SetColor(255, 250, 250)  # snow vessel in evaluated files.
@@ -174,9 +179,9 @@ class VesselDisplayWindow(QFrame):
         actor.SetMapper(mapper)
         return actor
 
-    def reconstruct(self, vessel_index, offset=10):
+    def do_reconstruct(self):
         # print vessel_index
-        vessel_data = self.ref_data_seq[vessel_index]
+        vessel_data = self.ref_data_seq[self.vessel_index]
         # init the coordinate cube : 512*512*272
         m_grid = []
         for i in range(512):
@@ -196,12 +201,12 @@ class VesselDisplayWindow(QFrame):
             center_z = vessel_data.get_iso_value_at(i) / self.zVoxelNum
             center_radius = vessel_data.get_radius_value_at(i) / ((self.xVoxelNum + self.yVoxelNum + self.zVoxelNum) / 3)
 
-            x_left_range = max(0, int(center_x - offset))
-            x_right_range = min(512, int(center_x + offset))
-            y_left_range = max(0, int(center_y - offset))
-            y_right_range = min(512, int(center_y + offset))
-            z_left_range = max(0, int(center_z - offset))
-            z_right_range = min(272, int(center_z + offset))
+            x_left_range = max(0, int(center_x - self.offset))
+            x_right_range = min(512, int(center_x + self.offset))
+            y_left_range = max(0, int(center_y - self.offset))
+            y_right_range = min(512, int(center_y + self.offset))
+            z_left_range = max(0, int(center_z - self.offset))
+            z_right_range = min(272, int(center_z + self.offset))
 
             sigma = center_radius / 2
 
@@ -216,25 +221,38 @@ class VesselDisplayWindow(QFrame):
 
                         m_grid[x][y][z] = max(grey_scale_value, m_grid[x][y][z])
 
-            # then call the process function to show it
+                        # then call the process function to show it
         print "end computing, start rendering"
         self.volume_data_process(m_grid)
 
+    def reconstruct(self, vessel_index, offset=10):
+        self.vessel_index = vessel_index
+        self.offset = offset
+        task = threading.Thread(None, self.do_reconstruct)
+        task.start()
+
     def volume_data_process(self, m_grid):
-        vtk_img_data = vtk.vtkImageData()
-        vtk_img_data.SetDimensions(len(m_grid), len(m_grid[0]), len(m_grid[0][0]))
+        vessel_image = vtk.vtkImageData()
+        vessel_image.SetDimensions(len(m_grid), len(m_grid[0]), len(m_grid[0][0]))
         # set the type of input
-        vtk_img_data.AllocateScalars(vtk.VTK_UNSIGNED_CHAR, 1)
-        dims = vtk_img_data.GetDimensions()
+        if vtk.VTK_MAJOR_VERSION <= 5:
+            vessel_image.SetNumberOfScalarComponents(1)
+            vessel_image.SetScalarTypeToUnsignedChar()
+        else:
+            imageData.AllocateScalars(vtk.VTK_DOUBLE, 1)
+        dims = vessel_image.GetDimensions()
         start_time = time.time()
 
         for x in range(dims[0]):
             for y in range(dims[1]):
                 for z in range(dims[2]):
-                    vtk_img_data.SetScalarComponentFromFloat(x, y, z, 0, m_grid[x][y][z])
+                    vessel_image.SetScalarComponentFromFloat(x, y, z, 0, m_grid[x][y][z])
         end_time = time.time()
-        print "computing time:", (start_time - end_time)
-        self.render_volume_data(vtk_img_data)
+        print "computing time:", (end_time - start_time)
+        self.vessel_image = vessel_image
+        self.Signal_NoParameters.emit()
+
+
 
     def render_volume_data(self, vtk_img_data):
         # Create transfer mapping scalar value to opacity
@@ -262,8 +280,10 @@ class VesselDisplayWindow(QFrame):
         compositeFunction = vtk.vtkVolumeRayCastCompositeFunction()
         volume_mapper = vtk.vtkVolumeRayCastMapper()
         volume_mapper.SetVolumeRayCastFunction(compositeFunction)
-
-        volume_mapper.SetInputData(vtk_img_data)
+        if vtk.VTK_MAJOR_VERSION <= 5:
+            volume_mapper.SetInput(vtk_img_data)
+        else:
+            volume_mapper.SetInputData(vtk_img_data)
         volume_mapper.SetBlendModeToMaximumIntensity()
 
         # The volume holds the mapper and the property and
@@ -275,7 +295,3 @@ class VesselDisplayWindow(QFrame):
         self.ren.AddVolume(volume)
         self.ren.ResetCamera()
         self.iren.Initialize()
-
-
-
-        print "done"

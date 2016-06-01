@@ -61,12 +61,16 @@ class MraImageDisplayWindow(QFrame):
 
         self.opacityTransferFunction = vtkPiecewiseFunction()
         self.opacityTransferFunction.AddPoint(0, 0.0)
-        self.opacityTransferFunction.AddPoint(1300, 0.0)
-        self.opacityTransferFunction.AddPoint(2400, 2.0)
+        self.opacityTransferFunction.AddPoint(1200, 0.0)
+        self.opacityTransferFunction.AddPoint(1600, 0.7)
+        self.opacityTransferFunction.AddPoint(2400, 0.7)
+
 
         self.colorTransferFunction = vtkColorTransferFunction()
-        self.colorTransferFunction.AddRGBPoint(0, 1, 0.6, 1.0)
-        self.colorTransferFunction.AddRGBPoint(1300, 1.0, 0.6, 1.0)
+        self.colorTransferFunction.AddRGBPoint(0, 0.0, 0.0, 1.0)
+        self.colorTransferFunction.AddRGBPoint(800, 1.0, 0.0, 0.0)
+        self.colorTransferFunction.AddRGBPoint(1200, 1.0, 1.0, 1.0)
+        self.colorTransferFunction.AddRGBPoint(2000, 1.0, 1.0, 1.0)
 
         self.gradientTransferFunction = vtkPiecewiseFunction()
         self.gradientTransferFunction.AddPoint(0, 2.0)
@@ -100,20 +104,14 @@ class MraImageDisplayWindow(QFrame):
     def interactor_initialization(self):
         self.iren.Initialize()
 
-    def set_mri_image(self, mra_img_path, flag, vessel_data_seq):
+    def set_mri_image(self, img, flag, vessel_data_seq):
         self.ren.RemoveAllViewProps()
 
-        if sys.hexversion == 34015984:
-            self.volumeMapper.SetInputData(mra_img_path)
-        elif sys.hexversion == 34015728:
-            self.volumeMapper.SetInput(mra_img_path)
+        if vtk.VTK_MAJOR_VERSION <= 5:
+            self.volumeMapper.SetInput(img)
+        else:
+            self.volumeMapper.SetInputData(img)
 
-        """
-        is will return True if two variables point to the same obj, == if the obj referred
-        to by the variables are equal.
-        In this case, only == will work because Python catches small integer obj, which
-        is an implementation detail. For larger integers, this does not work.
-       """
         self.volume.SetMapper(self.volumeMapper)
         self.volume.SetProperty(self.volumeProperty)
 
