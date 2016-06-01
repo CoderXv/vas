@@ -85,3 +85,6 @@ class PatientImageViewer(QFrame):
     def load_ref_data(self, ds_name, vessel_num):
         return self.parent.load_ref_data(ds_name, vessel_num)
         # return self.parent.get_the_ref_data_of_dataset_by_index(ds_name, vessel_num)
+
+    def reconstruct(self, vessel_index):
+        self.vesselDisplayWindow.reconstruct(vessel_index)

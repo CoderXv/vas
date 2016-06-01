@@ -611,7 +611,6 @@ class PlottingBoard(QWidget):
         elif reply.clickedButton() == yes:
             current_file = self.analyserMediator.get_lom_file_in_context_by_name(self.labelToBeModified[1])
             labels = current_file.get_labels()
-            # path = str(self.analyserMediator.get_calibrated_files_path_from_context() + 'Calibrated_' + self.labelToBeModified[1])
             # labels.write('*', path, fmt='generic',  valuetype='double')
 
             resource_filepath_list = self.analyserMediator.get_path_list_to_global_context()
